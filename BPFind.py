@@ -21,6 +21,7 @@ types = []
 sct = None
 tesseractfont = None
 
+
 def tessdata(img):
     global tesseractfont
     return pytesseract.image_to_data(
@@ -30,7 +31,7 @@ def tessdata(img):
         config=r'--psm 11 -c load_system_dawg=0')
 
 
-def myround(x, base=40):
+def myround(x, base=45):
     return int(round(x / base)) * base
 
 
@@ -68,7 +69,7 @@ def itemEval(base, debug=False, wdebug=False):
     if wdebug:
         # put all the tesseract text on the image and save it
         [cv2.putText(img, f'{text}', (l, t), cv2.QT_FONT_NORMAL, 0.55, (0, 255, 0))
-            for text, t, l in zip(data.text, data.top, data.left)]
+         for text, t, l in zip(data.text, data.top, data.left)]
         cv2.imwrite(f'debug{time.time()}.png', img)
 
     if debug:
@@ -78,7 +79,7 @@ def itemEval(base, debug=False, wdebug=False):
     # filter out random image text
     data = data[data.text.map(len) < 6]
     # remove ilvl
-    data = data[~data.text.isin(['81', '82', '83', '84', '85', '86'])]
+    data = data[~data.text.isin(['083', '084', '81', '82', '83', '84', '85', '86'])]
 
     data.text = data.text.apply(
         lambda row: [int(i) for i in filter(None, row.split('/'))] if '/' in row else [int(row)]
@@ -94,8 +95,9 @@ def itemEval(base, debug=False, wdebug=False):
                 # types are always to the right and should be almost level with the text
                 if x < row.left or myround(y) != myround(row.top):
                     continue
+
                 # match close types to the text
-                if (x - row.left) ** 2 + (y - row.top) ** 2 < 1550:
+                if (x - row.left) ** 2 + (y - row.top) ** 2 < 1520:
                     data.text.loc[row.Index].insert(0, ty)
 
         return data.text.tolist()
@@ -103,8 +105,7 @@ def itemEval(base, debug=False, wdebug=False):
 
 def click():
     time.sleep(0.01)
-    pyautogui.click(_pause=False)
-    time.sleep(0.01)
+    pyautogui.click()
 
 
 def moveMouse(topl, slot):
@@ -112,9 +113,7 @@ def moveMouse(topl, slot):
     wh = 53  # size of a inventory box
     x = 3 + topl[0] + slot[0] * wh
     y = 3 + topl[1] + slot[1] * wh
-    time.sleep(0.01)
-    pyautogui.moveTo(x, y, _pause=False)
-    time.sleep(0.01)
+    pyautogui.moveTo(x, y)
 
 
 def testBP():
@@ -123,58 +122,71 @@ def testBP():
     moveMouse((325, 205), (0, 0))
 
     # screen shot the item
+    # time.sleep(0.03)
     pyautogui.keyDown('alt', _pause=False)
-    time.sleep(0.05)  # need these sleeps as it takes a small amount of time for alt to show up
+    # need these sleeps as it takes a small amount of time for alt to show up
+    time.sleep(0.05)
+
     im = np.array(
         sct.grab({
             'left': 200,
-            'top': 250,
+            'top': 240,
             'width': 1050,
-            'height': 250
+            'height': 260
         }))
-    time.sleep(0.1)
-    pyautogui.keyUp('alt', _pause=False)
-    click()  # only here as the game sometimes loses focus on the item
-    pyautogui.hotkey('ctrl', 'c', _pause=False)
-    time.sleep(0.01)
 
+    time.sleep(0.02)
+    pyautogui.keyUp('alt')
+
+    pyautogui.hotkey('ctrl', 'c')
     item = pyperclip.paste()
+
+    for _ in range(10):
+        if re.search('Wings Revealed: (.*?)\r\n', item) is None:
+            moveMouse((325, 205), (0.3, 0.3))
+            moveMouse((325, 205), (0, 0))
+            pyautogui.hotkey('ctrl', 'c')
+            time.sleep(0.05)
+            item = pyperclip.paste()
+        else:
+            break
+    else:
+        exit('No item in slot or cannot ctrl-c')
 
     return itemEval(im), (
         re.search('Wings Revealed: (.*?)\r\n', item).group(1),
         re.search('Escape Routes Revealed: (.*?)\r\n', item).group(1),
         re.search('Reward Rooms Revealed: (.*?)\r\n', item).group(1),
-        r.group(1) if (r := re.search('Item Quantity: (.*?) \(augmented\)\r\n', item))              else '',
-        r.group(1) if (r := re.search('Item Rarity: (.*?) \(augmented\)\r\n', item))                else '',
-        r.group(1) if (r := re.search('Alert Level Reduction: (.*?) \(augmented\)\r\n', item))      else '',
-        r.group(1) if (r := re.search('Time Before Lockdown: (.*?) \(augmented\)\r\n', item))       else '',
+        r.group(1) if (r := re.search('Item Quantity: (.*?) \(augmented\)\r\n', item)) else '',
+        r.group(1) if (r := re.search('Item Rarity: (.*?) \(augmented\)\r\n', item)) else '',
+        r.group(1) if (r := re.search('Alert Level Reduction: (.*?) \(augmented\)\r\n', item)) else '',
+        r.group(1) if (r := re.search('Time Before Lockdown: (.*?) \(augmented\)\r\n', item)) else '',
         r.group(1) if (r := re.search('Maximum Alive Reinforcements: (.*?) \(augmented\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Requires Brute Force \(Level (.*?)\)\r\n', item))            else '',
-        r.group(1) if (r := re.search('Requires Demolition \(Level (.*?)\)\r\n', item))             else '',
-        r.group(1) if (r := re.search('Requires Trap Disarmament \(Level (.*?)\)\r\n', item))       else '',
-        r.group(1) if (r := re.search('Requires Perception \(Level (.*?)\)\r\n', item))             else '',
-        r.group(1) if (r := re.search('Requires Deception \(Level (.*?)\)\r\n', item))              else '',
-        r.group(1) if (r := re.search('Requires Agility \(Level (.*?)\)\r\n', item))                else '',
-        r.group(1) if (r := re.search('Requires Engineering \(Level (.*?)\)\r\n', item))            else '',
-        r.group(1) if (r := re.search('Requires Lockpicking \(Level (.*?)\)\r\n', item))            else '',
-        r.group(1) if (r := re.search('Requires Counter-Thaumaturgy \(Level (.*?)\)\r\n', item))    else ''
+        r.group(1) if (r := re.search('Requires Brute Force \(Level (.*?)\)\r\n', item)) else '',
+        r.group(1) if (r := re.search('Requires Demolition \(Level (.*?)\)\r\n', item)) else '',
+        r.group(1) if (r := re.search('Requires Trap Disarmament \(Level (.*?)\)\r\n', item)) else '',
+        r.group(1) if (r := re.search('Requires Perception \(Level (.*?)\)\r\n', item)) else '',
+        r.group(1) if (r := re.search('Requires Deception \(Level (.*?)\)\r\n', item)) else '',
+        r.group(1) if (r := re.search('Requires Agility \(Level (.*?)\)\r\n', item)) else '',
+        r.group(1) if (r := re.search('Requires Engineering \(Level (.*?)\)\r\n', item)) else '',
+        r.group(1) if (r := re.search('Requires Lockpicking \(Level (.*?)\)\r\n', item)) else '',
+        r.group(1) if (r := re.search('Requires Counter-Thaumaturgy \(Level (.*?)\)\r\n', item)) else ''
     )
 
 
 def putInTrade(comb, intrade):
     """Put a given combination in the trade window"""
-    # work out what slots the combination needs
+    # work out what slots the combination needs 6 -> 1, 1
     slots = [(math.floor(x / 5), (x % 5)) for x in comb]
 
     removal = []
     for item in intrade:
         if item not in slots:
             moveMouse((312, 535), item)
-            pyautogui.keyDown('ctrl', _pause=False)
-            time.sleep(0.005)
+            pyautogui.keyDown('ctrl')
             click()
-            pyautogui.keyUp('ctrl', _pause=False)
-            time.sleep(0.005)
+            pyautogui.keyUp('ctrl')
+
             removal.append(item)
 
     for x in removal:
@@ -183,14 +195,10 @@ def putInTrade(comb, intrade):
     for slot in slots:
         if slot not in intrade:
             moveMouse((1275, 590), slot)
-            time.sleep(0.005)
-
             click()
 
             moveMouse((312, 535), slot)
-            time.sleep(0.005)
             click()
-            time.sleep(0.005)
 
             intrade.append(slot)
 
@@ -202,7 +210,7 @@ def pComb(n, r):
 
 
 def bruteForceBP(start_at=(0, 1, 2, 3, 4), used_items=[], lname='log.txt', searchfor=[]):
-    print(f'Combinations: {pComb(60, 5)}')
+    print(f'Combinations: {pComb(60 - len(used_items), 5)}')
     with open(lname, 'a') as log:
 
         count = 0
@@ -267,11 +275,13 @@ def main():
     win = win32gui.FindWindow(None, 'Path Of Exile')
     # bring path to the front
     if win == 0:
-        print('Open Game')
         exit('No Game')
 
     win32gui.ShowWindow(win, 5)
     win32gui.SetForegroundWindow(win)
+
+    # set the default pause value from 0.1 to something a little faster
+    pyautogui.PAUSE = 0.01
 
     global types
     for filepath in glob.iglob('types/' + r'*'):
@@ -282,17 +292,17 @@ def main():
             cv2.imread(filepath)])
 
     test = [
-        # (0, 1, 2, 3, 4)
+        # (6, 7, 9, 16, 17)
     ]
 
     if test:
         [print(putInTrade(x, [])) for x in test]
-        exit(3)
+        exit(0)
 
     # if inventory slots are empty add them here
     used_items = []
 
-    bruteForceBP(used_items=used_items, searchfor=[17, 18, 19])
+    bruteForceBP(used_items=used_items)
 
 
 if __name__ == '__main__':
