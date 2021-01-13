@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import base64
 import concurrent
 import glob
 import itertools
@@ -153,25 +154,7 @@ def testBP():
     else:
         exit('No item in slot or cannot ctrl-c')
 
-    return itemEval(im), (
-        re.search('Wings Revealed: (.*?)\r\n', item).group(1),
-        re.search('Escape Routes Revealed: (.*?)\r\n', item).group(1),
-        re.search('Reward Rooms Revealed: (.*?)\r\n', item).group(1),
-        r.group(1) if (r := re.search('Item Quantity: (.*?) \(augmented\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Item Rarity: (.*?) \(augmented\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Alert Level Reduction: (.*?) \(augmented\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Time Before Lockdown: (.*?) \(augmented\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Maximum Alive Reinforcements: (.*?) \(augmented\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Requires Brute Force \(Level (.*?)\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Requires Demolition \(Level (.*?)\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Requires Trap Disarmament \(Level (.*?)\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Requires Perception \(Level (.*?)\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Requires Deception \(Level (.*?)\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Requires Agility \(Level (.*?)\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Requires Engineering \(Level (.*?)\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Requires Lockpicking \(Level (.*?)\)\r\n', item)) else '',
-        r.group(1) if (r := re.search('Requires Counter-Thaumaturgy \(Level (.*?)\)\r\n', item)) else ''
-    )
+    return itemEval(im), base64.b64encode(item.encode("utf-8"))
 
 
 def putInTrade(comb, intrade):
